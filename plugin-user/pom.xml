@@ -22,16 +22,31 @@
           <forceJavacCompilerUse>true</forceJavacCompilerUse>
           <fork>true</fork>
           <verbose>true</verbose>
+          <showWarnings>true</showWarnings>
           <source>1.8</source>
           <target>1.8</target>
           <encoding>UTF-8</encoding>
 
           <compilerArgs>
             <compilerArg>-processorpath</compilerArg>
-            <compilerArg>../compiler-plugin/target/compiler-plugin-1-SNAPSHOT.jar</compilerArg>
+            <compilerArg>
+              ..${file.separator}compiler-plugin${file.separator}target${file.separator}compiler-plugin-1-SNAPSHOT.jar
+            </compilerArg>
+
+            <!-- use this instead if you want to refer your local maven repository: -->
+            <!--<compilerArg>${settings.localRepository}${file.separator}no${file.separator}ivarref${file.separator}compiler-plugin${file.separator}1-SNAPSHOT${file.separator}compiler-plugin-1-SNAPSHOT.jar-->
+            <!--</compilerArg>-->
+
             <compilerArg>-Xplugin:ASTPrinter</compilerArg>
           </compilerArgs>
         </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>no.ivarref</groupId>
+            <artifactId>compiler-plugin</artifactId>
+            <version>1-SNAPSHOT</version>
+          </dependency>
+        </dependencies>
       </plugin>
     </plugins>
   </build>

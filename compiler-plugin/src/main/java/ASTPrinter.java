@@ -1,13 +1,14 @@
-import com.sun.source.tree.*;
+import com.sun.source.tree.CompilationUnitTree;
+import com.sun.source.tree.ImportTree;
+import com.sun.source.tree.LineMap;
+import com.sun.source.tree.Tree;
 import com.sun.source.util.*;
-import com.sun.tools.javac.tree.JCTree;
 
 import javax.tools.Diagnostic;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ASTPrinter implements Plugin {
@@ -29,10 +30,13 @@ public class ASTPrinter implements Plugin {
             public void finished(TaskEvent event) {
                 if (event.getKind() == TaskEvent.Kind.ANALYZE) {
                     CompilationUnitTree compilationUnit = event.getCompilationUnit();
+
                     try (FileOutputStream f = new FileOutputStream("javac.log", true)) {
                         fout = f;
                         log("********** start process compilation unit in file " + compilationUnit.getSourceFile().getName() + " **********");
-                        ASTPrinterVisitor astPrinterVisitor = new ASTPrinterVisitor(Trees.instance(task).getSourcePositions(), compilationUnit);
+                        Trees trees = Trees.instance(task);
+                        trees.printMessage(Diagnostic.Kind.WARNING, "Hello world", compilationUnit, compilationUnit);
+                        ASTPrinterVisitor astPrinterVisitor = new ASTPrinterVisitor(trees, compilationUnit);
                         astPrinterVisitor.scan(compilationUnit, null);
                         log(">>> Number of imports found: " + astPrinterVisitor.importCount.get());
                         log("********** end process compilation unit in file " + compilationUnit.getSourceFile().getName() + " **********");
@@ -55,6 +59,7 @@ public class ASTPrinter implements Plugin {
             throw new RuntimeException(e);
         }
     }
+
     public void log(String message, Throwable t) {
         try (StringWriter sw = new StringWriter();
              PrintWriter pw = new PrintWriter(sw)) {
@@ -72,16 +77,18 @@ public class ASTPrinter implements Plugin {
         private final CompilationUnitTree cu;
         final AtomicInteger indent = new AtomicInteger(0);
         public final AtomicInteger importCount = new AtomicInteger(0);
+        private final Trees trees;
 
-        public ASTPrinterVisitor(SourcePositions sourcePositions, CompilationUnitTree compilationUnit) {
-            this.sourcePositions = sourcePositions;
+        public ASTPrinterVisitor(Trees trees, CompilationUnitTree compilationUnit) {
+            this.sourcePositions = trees.getSourcePositions();
             this.cu = compilationUnit;
+            this.trees = trees;
         }
 
         @Override
         public Void scan(Tree tree, Void aVoid) {
             if (!(tree instanceof CompilationUnitTree)) indent.incrementAndGet();
-            if (tree!=null) logPosition(tree);
+            if (tree != null) logPosition(tree);
             Void result = super.scan(tree, aVoid);
             if (!(tree instanceof CompilationUnitTree)) indent.decrementAndGet();
             return result;
@@ -99,11 +106,11 @@ public class ASTPrinter implements Plugin {
                 LineMap linemap = cu.getLineMap();
 
                 String className = tree.getClass().getName();
-                if (tree.getClass().getInterfaces().length==1) {
+                if (tree.getClass().getInterfaces().length == 1) {
                     className = tree.getClass().getInterfaces()[0].getSimpleName();
                 }
 
-                if (startPos== Diagnostic.NOPOS) {
+                if (startPos == Diagnostic.NOPOS) {
                     log(adjust(className + " at unknown position"));
                 } else {
                     long lineStart = linemap.getLineNumber(startPos);
@@ -117,13 +124,15 @@ public class ASTPrinter implements Plugin {
                         endInfo = String.format(" -> [%d:%d]", lineEnd, colEnd);
                         actualSource = tree.toString().replaceAll("\n", "").replaceAll(" +", " ");
                         // Warning: This will strip whitespace inside strings as well.
-                        if (actualSource.length()>80) {
+                        if (actualSource.length() > 80) {
                             actualSource = actualSource.substring(0, 75) + "(...)";
                         }
 
                     }
                     String locationInfo = className + " [" + lineStart + ":" + colStart + "]" + endInfo;
-                    log(adjust(locationInfo) + actualSource);
+                    String message = adjust(locationInfo) + actualSource;
+                    log(message);
+                    trees.printMessage(Diagnostic.Kind.WARNING, className, tree, cu);
                 }
             } catch (Exception e) {
                 log("Error", e);
@@ -132,15 +141,15 @@ public class ASTPrinter implements Plugin {
 
         private String adjust(String s) {
             StringBuilder adjusted = new StringBuilder();
-            for (int i=0; i<indent.get(); i++) {
+            for (int i = 0; i < indent.get(); i++) {
                 adjusted.append("  ");
             }
 
             adjusted.append(s);
-            while (adjusted.length()<80) adjusted.append(' ');
+            while (adjusted.length() < 80) adjusted.append(' ');
 
             adjusted.append(" | ");
-            return  adjusted.toString();
+            return adjusted.toString();
         }
     }
 }

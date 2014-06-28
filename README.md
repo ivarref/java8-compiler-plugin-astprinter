@@ -1,5 +1,7 @@
-Java 8 compiler plugin demo: AST printer
-========================================
+Java 8 compiler plugin: AST printer
+===================================
+
+Those wild at heart may want to have a look at CheckTryWithResourcesOnZipStreams.java.
 
 Example usage:
 
@@ -65,4 +67,7 @@ Output:
               BlockTree [7:61] -> [9:10]                                             | {}
     >>> Number of imports found: 2
     ********** end process compilation unit in file .../src/main/java/Hello.java **********
+
+
+[More information on java 8 compiler plugins](http://techbitsfromsridhar.blogspot.no/2013/02/java-compiler-plug-ins-in-java-8-use.html)
 

@@ -2,4 +2,5 @@
 target/
 *.iml
 javac.log
+*.class
 
